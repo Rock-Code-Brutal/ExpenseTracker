@@ -70,6 +70,22 @@ export default {
   switch_to_light: "Switch to Light Mode",
   switch_to_dark: "Switch to Dark Mode",
   
+  // CSV Import/Export
+  import_csv: "📁 Import CSV",
+  export_csv: "📊 Export CSV",
+  select_csv_file: "Select CSV File",
+  csv_format_info: "Supported format: .csv",
+  csv_format_requirements: "CSV Format Requirements", 
+  csv_headers: "Required headers",
+  csv_date_format: "Date format",
+  csv_type_format: "Transaction type format",
+  csv_category_requirement: "Categories must already exist in the system",
+  importing_csv: "Importing CSV",
+  import_errors: "Import errors",
+  and_more_errors: (count) => `and ${count} more errors`,
+  invalid_file_type: "Invalid file type. Please select a .csv file",
+  close: "Close",
+  
   // Pagination
   load_more: "Load More",
   showing: "Showing",

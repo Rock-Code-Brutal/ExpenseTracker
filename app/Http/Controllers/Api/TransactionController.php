@@ -117,4 +117,83 @@ class TransactionController extends Controller
             'message' => 'Transaksi berhasil dihapus',
         ]);
     }
+
+    /**
+     * Import transactions from CSV
+     */
+    public function import(Request $request): JsonResponse
+    {
+        $request->validate([
+            'csv_data' => 'required|string',
+            'currency' => 'required|in:IDR,USD',
+        ]);
+
+        $csvData = $request->csv_data;
+        $currency = $request->currency;
+        $lines = str_getcsv($csvData, "\n");
+        
+        if (count($lines) < 2) {
+            return response()->json([
+                'success' => false,
+                'message' => 'CSV file must contain at least a header and one data row',
+            ], 422);
+        }
+
+        // Parse header
+        $header = str_getcsv($lines[0]);
+        $expectedHeaders = ['Date', 'Type', 'Category', 'Amount', 'Currency', 'Description'];
+        
+        if ($header !== $expectedHeaders) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid CSV format. Expected headers: ' . implode(', ', $expectedHeaders),
+                'expected' => $expectedHeaders,
+                'received' => $header,
+            ], 422);
+        }
+
+        $imported = 0;
+        $errors = [];
+        $categories = \App\Models\Category::pluck('name', 'id')->toArray();
+        $categoryMap = array_flip($categories); // name -> id mapping
+
+        // Process data rows
+        for ($i = 1; $i < count($lines); $i++) {
+            $row = str_getcsv($lines[$i]);
+            
+            if (count($row) !== 6) {
+                $errors[] = "Row {$i}: Invalid number of columns";
+                continue;
+            }
+
+            [$date, $type, $categoryName, $amount, $csvCurrency, $description] = $row;
+
+            // Validate and find category
+            if (!isset($categoryMap[$categoryName])) {
+                $errors[] = "Row {$i}: Category '{$categoryName}' not found";
+                continue;
+            }
+
+            try {
+                Transaction::create([
+                    'transaction_date' => $date,
+                    'type' => $type,
+                    'category_id' => $categoryMap[$categoryName],
+                    'amount' => (float) $amount,
+                    'currency' => $currency, // Use selected currency
+                    'description' => $description ?: null,
+                ]);
+                $imported++;
+            } catch (\Exception $e) {
+                $errors[] = "Row {$i}: {$e->getMessage()}";
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Successfully imported {$imported} transactions",
+            'imported' => $imported,
+            'errors' => $errors,
+        ]);
+    }
 }

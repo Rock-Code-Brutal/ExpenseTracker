@@ -28,6 +28,11 @@ const pagination = ref({
 })
 const loadingMore = ref(false)
 
+// CSV Import state
+const showImportModal = ref(false)
+const importing = ref(false)
+const importResult = ref(null)
+
 // Filter
 const filters = reactive({
     search: '',
@@ -305,6 +310,65 @@ const loadMore = async () => {
     }
 }
 
+// CSV Import functionality
+const handleFileImport = (event) => {
+    const file = event.target.files[0]
+    if (!file) return
+    
+    if (!file.name.endsWith('.csv')) {
+        alert(t('invalid_file_type'))
+        return
+    }
+    
+    const reader = new FileReader()
+    reader.onload = async (e) => {
+        const csvData = e.target.result
+        await importCSV(csvData)
+    }
+    reader.readAsText(file)
+}
+
+const importCSV = async (csvData) => {
+    importing.value = true
+    importResult.value = null
+    
+    try {
+        const response = await fetch('/api/transactions/import', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                csv_data: csvData,
+                currency: props.currency
+            })
+        })
+        
+        const result = await response.json()
+        importResult.value = result
+        
+        if (result.success) {
+            await loadTransactions() // Reload transactions
+        }
+    } catch (error) {
+        console.error('Import error:', error)
+        importResult.value = {
+            success: false,
+            message: 'Failed to import CSV: ' + error.message
+        }
+    } finally {
+        importing.value = false
+    }
+}
+
+const closeImportModal = () => {
+    showImportModal.value = false
+    importResult.value = null
+    // Reset file input
+    const fileInput = document.getElementById('csv-file-input')
+    if (fileInput) fileInput.value = ''
+}
+
 // Watch filters untuk auto-reload
 watch(filters, () => {
     loadTransactions(1, false) // Reset to page 1 when filters change
@@ -342,6 +406,10 @@ onMounted(() => {
         <div class="flex justify-between items-center">
             <h2 class="text-xl font-semibold text-gray-900 dark:text-white">{{ t('transactions') }}</h2>
             <div class="flex space-x-2">
+                <button @click="showImportModal = true"
+                        class="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 text-sm">
+                    {{ t('import_csv') }}
+                </button>
                 <button @click="exportToCSV"
                         class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 text-sm">
                     {{ t('export_csv') }}
@@ -425,6 +493,90 @@ onMounted(() => {
                 </div>
             </form>
         </div>
+
+        <!-- CSV Import Modal -->
+        <div v-if="showImportModal" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border dark:border-gray-700">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                📁 {{ t('import_csv') }}
+            </h3>
+            
+            <div v-if="!importResult" class="space-y-4">
+                <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <div class="mt-2">
+                        <label for="csv-file-input" class="cursor-pointer">
+                            <span class="mt-2 block text-sm font-medium text-gray-900 dark:text-white">
+                                {{ t('select_csv_file') }}
+                            </span>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                {{ t('csv_format_info') }}
+                            </p>
+                        </label>
+                        <input 
+                            id="csv-file-input" 
+                            type="file" 
+                            accept=".csv" 
+                            @change="handleFileImport" 
+                            class="hidden"
+                        >
+                    </div>
+                </div>
+                
+                <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                    <h4 class="text-sm font-medium text-blue-900 dark:text-blue-200 mb-2">{{ t('csv_format_requirements') }}</h4>
+                    <ul class="text-xs text-blue-800 dark:text-blue-300 space-y-1">
+                        <li>• {{ t('csv_headers') }}: Date, Type, Category, Amount, Currency, Description</li>
+                        <li>• {{ t('csv_date_format') }}: YYYY-MM-DD</li>
+                        <li>• {{ t('csv_type_format') }}: income / expense</li>
+                        <li>• {{ t('csv_category_requirement') }}</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Import Progress -->
+            <div v-if="importing" class="text-center py-6">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+                <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">{{ t('importing_csv') }}...</p>
+            </div>
+            
+            <!-- Import Result -->
+            <div v-if="importResult" class="space-y-4">
+                <div :class="importResult.success ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'" class="p-4 rounded-lg">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg v-if="importResult.success" class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                            <svg v-else class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <p :class="importResult.success ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200'" class="text-sm font-medium">
+                                {{ importResult.message }}
+                            </p>
+                            <div v-if="importResult.errors && importResult.errors.length > 0" class="mt-2">
+                                <p class="text-xs text-red-700 dark:text-red-300 font-medium">{{ t('import_errors') }}:</p>
+                                <ul class="mt-1 text-xs text-red-700 dark:text-red-300 list-disc list-inside">
+                                    <li v-for="error in importResult.errors.slice(0, 5)" :key="error">{{ error }}</li>
+                                    <li v-if="importResult.errors.length > 5" class="font-medium">{{ t('and_more_errors')(importResult.errors.length - 5) }}</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Modal Actions -->
+            <div class="flex justify-end space-x-3 mt-6">
+                <button @click="closeImportModal" class="px-4 py-2 border dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    {{ importResult ? t('close') : t('cancel') }}
+                </button>
+            </div>
+        </div>
+        
         <!-- Bagian Filter -->
         <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow border dark:border-gray-700 mb-6">
             <div class="flex justify-between items-center mb-4">

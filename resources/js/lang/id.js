@@ -70,6 +70,22 @@ export default {
   switch_to_light: "Beralih ke Mode Terang",
   switch_to_dark: "Beralih ke Mode Gelap",
   
+  // CSV Import/Export
+  import_csv: "📁 Import CSV",
+  export_csv: "📊 Export CSV",
+  select_csv_file: "Pilih File CSV",
+  csv_format_info: "Format yang didukung: .csv",
+  csv_format_requirements: "Persyaratan Format CSV",
+  csv_headers: "Header yang diperlukan",
+  csv_date_format: "Format tanggal",
+  csv_type_format: "Format tipe transaksi", 
+  csv_category_requirement: "Kategori harus sudah ada di sistem",
+  importing_csv: "Mengimpor CSV",
+  import_errors: "Error saat import",
+  and_more_errors: (count) => `dan ${count} error lainnya`,
+  invalid_file_type: "Tipe file tidak valid. Harap pilih file .csv",
+  close: "Tutup",
+  
   // Pagination
   load_more: "Muat Lebih Banyak",
   showing: "Menampilkan",
