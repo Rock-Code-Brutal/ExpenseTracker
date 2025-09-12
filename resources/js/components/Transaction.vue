@@ -33,6 +33,13 @@ const showImportModal = ref(false)
 const importing = ref(false)
 const importResult = ref(null)
 
+// Computed property for more errors message
+const moreErrorsMessage = computed(() => {
+    if (!importResult.value?.errors || importResult.value.errors.length <= 5) return ''
+    const count = importResult.value.errors.length - 5
+    return t('and_more_errors')(count)
+})
+
 // Filter
 const filters = reactive({
     search: '',
@@ -312,8 +319,14 @@ const loadMore = async () => {
 
 // CSV Import functionality
 const handleFileImport = (event) => {
+    console.log('handleFileImport called')
     const file = event.target.files[0]
-    if (!file) return
+    if (!file) {
+        console.log('No file selected')
+        return
+    }
+    
+    console.log('File selected:', file.name, file.size, file.type)
     
     if (!file.name.endsWith('.csv')) {
         alert(t('invalid_file_type'))
@@ -322,17 +335,25 @@ const handleFileImport = (event) => {
     
     const reader = new FileReader()
     reader.onload = async (e) => {
+        console.log('File read complete, data length:', e.target.result.length)
         const csvData = e.target.result
         await importCSV(csvData)
+    }
+    reader.onerror = (e) => {
+        console.error('FileReader error:', e)
     }
     reader.readAsText(file)
 }
 
 const importCSV = async (csvData) => {
+    console.log('importCSV called with data length:', csvData.length)
+    console.log('CSV data preview:', csvData.substring(0, 200))
+    
     importing.value = true
     importResult.value = null
     
     try {
+        console.log('Sending import request...')
         const response = await fetch('/api/transactions/import', {
             method: 'POST',
             headers: {
@@ -344,10 +365,14 @@ const importCSV = async (csvData) => {
             })
         })
         
+        console.log('Import response status:', response.status)
         const result = await response.json()
+        console.log('Import result:', result)
+        
         importResult.value = result
         
         if (result.success) {
+            console.log('Import successful, reloading transactions')
             await loadTransactions() // Reload transactions
         }
     } catch (error) {
@@ -358,6 +383,7 @@ const importCSV = async (csvData) => {
         }
     } finally {
         importing.value = false
+        console.log('Import process finished')
     }
 }
 
@@ -561,7 +587,7 @@ onMounted(() => {
                                 <p class="text-xs text-red-700 dark:text-red-300 font-medium">{{ t('import_errors') }}:</p>
                                 <ul class="mt-1 text-xs text-red-700 dark:text-red-300 list-disc list-inside">
                                     <li v-for="error in importResult.errors.slice(0, 5)" :key="error">{{ error }}</li>
-                                    <li v-if="importResult.errors.length > 5" class="font-medium">{{ t('and_more_errors')(importResult.errors.length - 5) }}</li>
+                                    <li v-if="importResult.errors.length > 5" class="font-medium">{{ moreErrorsMessage }}</li>
                                 </ul>
                             </div>
                         </div>
