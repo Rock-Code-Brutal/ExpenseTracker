@@ -70,6 +70,11 @@ export default {
   switch_to_light: "Switch to Light Mode",
   switch_to_dark: "Switch to Dark Mode",
   
+  // Pagination
+  load_more: "Load More",
+  showing: "Showing",
+  of: "of",
+  
   // Messages
   failed_to_save: "Failed to save transaction",
   failed_to_update: "Failed to update transaction",

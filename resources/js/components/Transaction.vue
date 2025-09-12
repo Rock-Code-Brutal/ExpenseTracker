@@ -19,6 +19,14 @@ const editingTransaction = ref(null)
 // Data
 const categories = ref([])
 const transactions = ref([])
+const pagination = ref({
+    current_page: 1,
+    last_page: 1,
+    has_more: false,
+    per_page: 50, // Increase default to 50
+    total: 0
+})
+const loadingMore = ref(false)
 
 // Filter
 const filters = reactive({
@@ -72,12 +80,20 @@ const formatDate = (date) => {
 }
 
 //Muat Transaksi
-const loadTransactions = async () => {
-    loading.value = true
+const loadTransactions = async (page = 1, append = false) => {
+    if (page === 1) {
+        loading.value = true
+        pagination.value.current_page = 1
+    } else {
+        loadingMore.value = true
+    }
+    
     try {
         //Bangun Parameter Kueri
         const params = new URLSearchParams()
         params.append('currency', props.currency)
+        params.append('page', page)
+        params.append('per_page', pagination.value.per_page)
 
         if (filters.type) params.append('type', filters.type)
         if (filters.category_id) params.append('category_id', filters.category_id)
@@ -88,6 +104,15 @@ const loadTransactions = async () => {
         const json = await res.json()
         if (json.success) {
             let results = json.data.data
+            
+            // Update pagination info
+            pagination.value = {
+                current_page: json.data.current_page,
+                last_page: json.data.last_page,
+                has_more: json.data.current_page < json.data.last_page,
+                per_page: json.data.per_page,
+                total: json.data.total
+            }
 
             //Filter pencarian dari sisi klien
             if (filters.search) {
@@ -96,12 +121,19 @@ const loadTransactions = async () => {
                     tx.category?.name?.toLowerCase().includes(filters.search.toLowerCase())
                 )
             }
-            transactions.value = results
+            
+            // Append or replace transactions
+            if (append && page > 1) {
+                transactions.value = [...transactions.value, ...results]
+            } else {
+                transactions.value = results
+            }
         }
     } catch (e) {
         console.error('Failed to load transactions', e)
     } finally {
         loading.value = false
+        loadingMore.value = false
     }
 }
 
@@ -266,9 +298,16 @@ const exportToCSV = () => {
     document.body.removeChild(link)
 }
 
+// Load more transactions
+const loadMore = async () => {
+    if (pagination.value.has_more && !loadingMore.value) {
+        await loadTransactions(pagination.value.current_page + 1, true)
+    }
+}
+
 // Watch filters untuk auto-reload
 watch(filters, () => {
-    loadTransactions()
+    loadTransactions(1, false) // Reset to page 1 when filters change
 }, { deep: true })
 
 // Menutup atau Mereset form
@@ -491,6 +530,20 @@ onMounted(() => {
                             </button>
                         </div>
                     </div>
+                </div>
+                
+                <!-- Load More Button -->
+                <div v-if="pagination.has_more" class="text-center mt-6">
+                    <button @click="loadMore" :disabled="loadingMore"
+                            class="bg-gray-600 text-white px-6 py-2 rounded-md hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <span v-if="loadingMore">{{ t('loading') }}...</span>
+                        <span v-else>📄 {{ t('load_more') }}</span>
+                    </button>
+                </div>
+                
+                <!-- Pagination Info -->
+                <div v-if="pagination.total > 0" class="text-center mt-4 text-sm text-gray-500 dark:text-gray-400">
+                    {{ t('showing') }} {{ transactions.length }} {{ t('of') }} {{ pagination.total }} {{ t('transactions') }}
                 </div>
             </div>
         </div>

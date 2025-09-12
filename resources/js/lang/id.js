@@ -70,6 +70,11 @@ export default {
   switch_to_light: "Beralih ke Mode Terang",
   switch_to_dark: "Beralih ke Mode Gelap",
   
+  // Pagination
+  load_more: "Muat Lebih Banyak",
+  showing: "Menampilkan",
+  of: "dari",
+  
   // Messages
   failed_to_save: "Gagal menyimpan transaksi",
   failed_to_update: "Gagal mengupdate transaksi", 
