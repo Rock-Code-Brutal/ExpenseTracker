@@ -86,6 +86,19 @@ export default {
   invalid_file_type: "Invalid file type. Please select a .csv file",
   close: "Close",
   
+  // Enhanced CSV Support
+  supported_columns: "Supported Columns",
+  supported_formats: "Supported Formats",
+  date_columns: "Date Columns", 
+  category_columns: "Category Columns",
+  amount_columns: "Amount Columns",
+  description_columns: "Description Columns",
+  date_formats: "Date Formats",
+  currency_formats: "Currency Formats",
+  auto_type_detection: "Auto Transaction Type Detection",
+  flexible_column_order: "Flexible Column Order",
+  example_format: "Example Format",
+  
   // Pagination
   load_more: "Load More",
   showing: "Showing",

@@ -552,12 +552,31 @@ onMounted(() => {
                 
                 <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
                     <h4 class="text-sm font-medium text-blue-900 dark:text-blue-200 mb-2">{{ t('csv_format_requirements') }}</h4>
-                    <ul class="text-xs text-blue-800 dark:text-blue-300 space-y-1">
-                        <li>• {{ t('csv_headers') }}: Date, Type, Category, Amount, Currency, Description</li>
-                        <li>• {{ t('csv_date_format') }}: YYYY-MM-DD</li>
-                        <li>• {{ t('csv_type_format') }}: income / expense</li>
-                        <li>• {{ t('csv_category_requirement') }}</li>
-                    </ul>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                        <div>
+                            <p class="font-medium text-blue-900 dark:text-blue-200 mb-1">{{ t('supported_columns') }}:</p>
+                            <ul class="text-blue-800 dark:text-blue-300 space-y-1">
+                                <li>• {{ t('date_columns') }}: Tanggal, Date, Tgl</li>
+                                <li>• {{ t('category_columns') }}: Kategori, Category, Sub Kategori</li>
+                                <li>• {{ t('amount_columns') }}: Nominal, Amount, Jumlah</li>
+                                <li>• {{ t('description_columns') }}: Keterangan, Description</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <p class="font-medium text-blue-900 dark:text-blue-200 mb-1">{{ t('supported_formats') }}:</p>
+                            <ul class="text-blue-800 dark:text-blue-300 space-y-1">
+                                <li>• {{ t('date_formats') }}: 31 Jul 2025, 01 Agu 2025</li>
+                                <li>• {{ t('currency_formats') }}: Rp 2.500.000, 2500000</li>
+                                <li>• {{ t('auto_type_detection') }}</li>
+                                <li>• {{ t('flexible_column_order') }}</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="mt-3 p-2 bg-green-100 dark:bg-green-900/20 rounded">
+                        <p class="text-xs text-green-800 dark:text-green-200">
+                            <strong>{{ t('example_format') }}:</strong> Tanggal, Kategori, Sub Kategori, Nominal, Keterangan
+                        </p>
+                    </div>
                 </div>
             </div>
             

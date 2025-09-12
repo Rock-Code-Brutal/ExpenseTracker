@@ -119,7 +119,7 @@ class TransactionController extends Controller
     }
 
     /**
-     * Import transactions from CSV
+     * Import transactions from CSV with flexible format support
      */
     public function import(Request $request): JsonResponse
     {
@@ -139,16 +139,15 @@ class TransactionController extends Controller
             ], 422);
         }
 
-        // Parse header
+        // Parse header and auto-detect column mapping
         $header = str_getcsv($lines[0]);
-        $expectedHeaders = ['Date', 'Type', 'Category', 'Amount', 'Currency', 'Description'];
+        $columnMapping = $this->detectColumnMapping($header);
         
-        if ($header !== $expectedHeaders) {
+        if (!$columnMapping) {
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid CSV format. Expected headers: ' . implode(', ', $expectedHeaders),
-                'expected' => $expectedHeaders,
-                'received' => $header,
+                'message' => 'Could not detect CSV format. Supported columns: Date/Tanggal, Category/Kategori, Amount/Nominal, Description/Keterangan',
+                'received_headers' => $header,
             ], 422);
         }
 
@@ -161,29 +160,44 @@ class TransactionController extends Controller
         for ($i = 1; $i < count($lines); $i++) {
             $row = str_getcsv($lines[$i]);
             
-            if (count($row) !== 6) {
-                $errors[] = "Row {$i}: Invalid number of columns";
-                continue;
-            }
-
-            [$date, $type, $categoryName, $amount, $csvCurrency, $description] = $row;
-
-            // Validate and find category
-            if (!isset($categoryMap[$categoryName])) {
-                $errors[] = "Row {$i}: Category '{$categoryName}' not found";
-                continue;
-            }
-
             try {
+                $parsedData = $this->parseRowData($row, $columnMapping, $header);
+                
+                // Parse Indonesian date format
+                $date = $this->parseIndonesianDate($parsedData['date']);
+                if (!$date) {
+                    $errors[] = "Row {$i}: Invalid date format '{$parsedData['date']}'";
+                    continue;
+                }
+                
+                // Parse Indonesian currency format
+                $amount = $this->parseIndonesianCurrency($parsedData['amount']);
+                if ($amount === false) {
+                    $errors[] = "Row {$i}: Invalid amount format '{$parsedData['amount']}'";
+                    continue;
+                }
+                
+                // Determine transaction type and find category
+                $type = $this->determineTransactionType($parsedData['category'], $parsedData['subcategory'] ?? null);
+                $categoryName = $parsedData['subcategory'] ?? $parsedData['category'];
+                
+                // Find or create category if needed
+                $categoryId = $this->findOrSuggestCategory($categoryName, $categoryMap, $type);
+                if (!$categoryId) {
+                    $errors[] = "Row {$i}: Category '{$categoryName}' not found. Please create this category first.";
+                    continue;
+                }
+
                 Transaction::create([
                     'transaction_date' => $date,
                     'type' => $type,
-                    'category_id' => $categoryMap[$categoryName],
-                    'amount' => (float) $amount,
-                    'currency' => $currency, // Use selected currency
-                    'description' => $description ?: null,
+                    'category_id' => $categoryId,
+                    'amount' => $amount,
+                    'currency' => $currency,
+                    'description' => $parsedData['description'] ?: null,
                 ]);
                 $imported++;
+                
             } catch (\Exception $e) {
                 $errors[] = "Row {$i}: {$e->getMessage()}";
             }
@@ -194,6 +208,191 @@ class TransactionController extends Controller
             'message' => "Successfully imported {$imported} transactions",
             'imported' => $imported,
             'errors' => $errors,
+            'column_mapping' => $columnMapping,
         ]);
+    }
+    
+    /**
+     * Auto-detect column mapping from header
+     */
+    private function detectColumnMapping($header)
+    {
+        $mapping = [];
+        
+        foreach ($header as $index => $columnName) {
+            $columnName = trim($columnName);
+            
+            // Date columns
+            if (in_array(strtolower($columnName), ['date', 'tanggal', 'tgl'])) {
+                $mapping['date'] = $index;
+            }
+            // Category columns
+            elseif (in_array(strtolower($columnName), ['category', 'kategori', 'kat'])) {
+                $mapping['category'] = $index;
+            }
+            // Sub Category columns
+            elseif (in_array(strtolower($columnName), ['sub category', 'sub kategori', 'subcategory', 'subkategori'])) {
+                $mapping['subcategory'] = $index;
+            }
+            // Amount columns
+            elseif (in_array(strtolower($columnName), ['amount', 'nominal', 'jumlah', 'nilai'])) {
+                $mapping['amount'] = $index;
+            }
+            // Description columns
+            elseif (in_array(strtolower($columnName), ['description', 'keterangan', 'desc', 'ket', 'note', 'catatan'])) {
+                $mapping['description'] = $index;
+            }
+            // Type columns
+            elseif (in_array(strtolower($columnName), ['type', 'tipe', 'jenis'])) {
+                $mapping['type'] = $index;
+            }
+        }
+        
+        // Minimum required: date, category, amount
+        if (isset($mapping['date']) && isset($mapping['category']) && isset($mapping['amount'])) {
+            return $mapping;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Parse row data based on column mapping
+     */
+    private function parseRowData($row, $mapping, $header)
+    {
+        $data = [];
+        
+        $data['date'] = isset($mapping['date']) ? ($row[$mapping['date']] ?? '') : '';
+        $data['category'] = isset($mapping['category']) ? ($row[$mapping['category']] ?? '') : '';
+        $data['subcategory'] = isset($mapping['subcategory']) ? ($row[$mapping['subcategory']] ?? null) : null;
+        $data['amount'] = isset($mapping['amount']) ? ($row[$mapping['amount']] ?? '') : '';
+        $data['description'] = isset($mapping['description']) ? ($row[$mapping['description']] ?? '') : '';
+        $data['type'] = isset($mapping['type']) ? ($row[$mapping['type']] ?? null) : null;
+        
+        return $data;
+    }
+    
+    /**
+     * Parse Indonesian date format (31 Jul 2025, 01 Agu 2025, etc.)
+     */
+    private function parseIndonesianDate($dateString)
+    {
+        $dateString = trim($dateString);
+        
+        // Indonesian month mapping
+        $monthMap = [
+            'jan' => '01', 'januari' => '01',
+            'feb' => '02', 'februari' => '02',
+            'mar' => '03', 'maret' => '03',
+            'apr' => '04', 'april' => '04',
+            'mei' => '05',
+            'jun' => '06', 'juni' => '06',
+            'jul' => '07', 'juli' => '07',
+            'agu' => '08', 'agus' => '08', 'agustus' => '08',
+            'sep' => '09', 'sept' => '09', 'september' => '09',
+            'okt' => '10', 'oktober' => '10',
+            'nov' => '11', 'november' => '11',
+            'des' => '12', 'desember' => '12',
+        ];
+        
+        // Try to parse Indonesian format (31 Jul 2025)
+        if (preg_match('/(\d{1,2})\s+(\w+)\s+(\d{4})/', $dateString, $matches)) {
+            $day = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
+            $monthStr = strtolower($matches[2]);
+            $year = $matches[3];
+            
+            if (isset($monthMap[$monthStr])) {
+                return $year . '-' . $monthMap[$monthStr] . '-' . $day;
+            }
+        }
+        
+        // Try standard formats (YYYY-MM-DD, DD/MM/YYYY, etc.)
+        $standardFormats = [
+            'Y-m-d', 'd/m/Y', 'm/d/Y', 'd-m-Y', 'm-d-Y'
+        ];
+        
+        foreach ($standardFormats as $format) {
+            $parsed = \DateTime::createFromFormat($format, $dateString);
+            if ($parsed !== false) {
+                return $parsed->format('Y-m-d');
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Parse Indonesian currency format (Rp 2.500.000 -> 2500000)
+     */
+    private function parseIndonesianCurrency($amountString)
+    {
+        $amountString = trim($amountString);
+        
+        // Remove currency symbols and spaces
+        $cleaned = preg_replace('/[Rp\s\.]/', '', $amountString);
+        $cleaned = str_replace(',', '.', $cleaned); // Handle decimal comma
+        
+        // Check if it's a valid number
+        if (is_numeric($cleaned)) {
+            return (float) $cleaned;
+        }
+        
+        // Try to extract number from string
+        if (preg_match('/(\d[\d\.,]*)/', $amountString, $matches)) {
+            $numberStr = str_replace(['.', ','], ['', '.'], $matches[1]);
+            if (is_numeric($numberStr)) {
+                return (float) $numberStr;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Determine transaction type based on category
+     */
+    private function determineTransactionType($category, $subcategory = null)
+    {
+        $incomeKeywords = ['pemasukan', 'income', 'gaji', 'salary', 'pendapatan', 'bonus', 'hadiah'];
+        $expenseKeywords = ['pengeluaran', 'expense', 'belanja', 'bayar', 'beli', 'makan', 'transport'];
+        
+        $searchText = strtolower($category . ' ' . ($subcategory ?? ''));
+        
+        foreach ($incomeKeywords as $keyword) {
+            if (strpos($searchText, $keyword) !== false) {
+                return 'income';
+            }
+        }
+        
+        foreach ($expenseKeywords as $keyword) {
+            if (strpos($searchText, $keyword) !== false) {
+                return 'expense';
+            }
+        }
+        
+        // Default to expense if can't determine
+        return 'expense';
+    }
+    
+    /**
+     * Find category or suggest creating it
+     */
+    private function findOrSuggestCategory($categoryName, $categoryMap, $type)
+    {
+        // Exact match
+        if (isset($categoryMap[$categoryName])) {
+            return $categoryMap[$categoryName];
+        }
+        
+        // Try case-insensitive match
+        foreach ($categoryMap as $name => $id) {
+            if (strtolower($name) === strtolower($categoryName)) {
+                return $id;
+            }
+        }
+        
+        // Could suggest creating category here, but for now return null
+        return null;
     }
 }

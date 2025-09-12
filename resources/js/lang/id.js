@@ -86,6 +86,19 @@ export default {
   invalid_file_type: "Tipe file tidak valid. Harap pilih file .csv",
   close: "Tutup",
   
+  // Enhanced CSV Support
+  supported_columns: "Kolom yang Didukung",
+  supported_formats: "Format yang Didukung", 
+  date_columns: "Kolom Tanggal",
+  category_columns: "Kolom Kategori",
+  amount_columns: "Kolom Nominal",
+  description_columns: "Kolom Keterangan",
+  date_formats: "Format Tanggal",
+  currency_formats: "Format Mata Uang",
+  auto_type_detection: "Deteksi Otomatis Tipe Transaksi",
+  flexible_column_order: "Urutan Kolom Fleksibel",
+  example_format: "Contoh Format",
+  
   // Pagination
   load_more: "Muat Lebih Banyak",
   showing: "Menampilkan",
