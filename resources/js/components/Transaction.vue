@@ -144,32 +144,55 @@ const addTransaction = async () => {
 
 // Mengedit Data
 const editTransaction = (transaction) => {
+    console.log('Editing transaction:', transaction) // Debug log
     editingTransaction.value = transaction
+    
+    // Populate form dengan data yang ada
     form.type = transaction.type
-    form.category_id = transaction.category_id
-    form.amount = transaction.amount
+    form.category_id = String(transaction.category_id) // Convert to string untuk select option
+    form.amount = String(transaction.amount) // Convert to string untuk number input
     form.transaction_date = transaction.transaction_date
     form.description = transaction.description || ''
     form.currency = transaction.currency
+    
     showForm.value = true
+    console.log('Form populated:', form) // Debug log
 }
 
 // Mengupdate Data
 const updateTransaction = async () => {
     submitting.value = true
+    
+    // Debug logs
+    console.log('Updating transaction:', editingTransaction.value.id)
+    console.log('Form data before update:', form)
+    
     try {
-        const payload = {...form, currency: props.currency}
+        // Prepare payload dengan type conversion yang benar
+        const payload = {
+            ...form,
+            currency: props.currency,
+            amount: Number(form.amount), // Convert back to number
+            category_id: Number(form.category_id) // Convert back to number
+        }
+        
+        console.log('Update payload:', payload)
+        
         const res = await fetch(`/api/transactions/${editingTransaction.value.id}`, {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(payload)
         })
 
+        console.log('Update response status:', res.status)
         const json = await res.json()
+        console.log('Update response data:', json)
+        
         if (json.success) {
             closeForm()
             await loadTransactions()
         } else {
+            console.error('Update API Error:', json)
             alert(json.message || 'Failed to update transaction')
         }
     } catch (e) {

@@ -87,12 +87,12 @@ class TransactionController extends Controller
     public function update(Request $request, Transaction $transaction): JsonResponse
     {
         $validated = $request->validate([
-            'category_id' => 'exists:categories,id',
-            'amount' => 'numeric|min:0.01',
-            'currency' => 'in:IDR,USD',
-            'type' => 'in:income,expense',
+            'category_id' => 'required|exists:categories,id',
+            'amount' => 'required|numeric|min:0.01',
+            'currency' => 'required|in:IDR,USD',
+            'type' => 'required|in:income,expense',
             'description' => 'nullable|string',
-            'transaction_date' => 'date',
+            'transaction_date' => 'required|date',
         ]);
 
         $transaction->update($validated);
