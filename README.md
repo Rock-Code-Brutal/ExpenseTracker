@@ -98,7 +98,7 @@
 ### Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/expense-tracker.git
+git clone https://github.com/Rock-Code-Brutal/ExpenseTracker.git
 cd expense-tracker
 ```
 
