@@ -178,7 +178,23 @@ class TransactionController extends Controller
                 }
                 
                 // Determine transaction type and find category
-                $type = $this->determineTransactionType($parsedData['category'], $parsedData['subcategory'] ?? null);
+                $type = null;
+                
+                // First priority: Check if CSV has explicit type column
+                if ($parsedData['type']) {
+                    $explicitType = strtolower(trim($parsedData['type']));
+                    if (in_array($explicitType, ['income', 'pemasukan', 'pendapatan', 'masuk'])) {
+                        $type = 'income';
+                    } elseif (in_array($explicitType, ['expense', 'pengeluaran', 'keluar', 'belanja'])) {
+                        $type = 'expense';
+                    }
+                }
+                
+                // Second priority: Determine by category name if type not explicitly set
+                if (!$type) {
+                    $type = $this->determineTransactionType($parsedData['category'], $parsedData['subcategory'] ?? null);
+                }
+                
                 $categoryName = $parsedData['subcategory'] ?? $parsedData['category'];
                 
                 // Find or create category if needed
@@ -274,29 +290,55 @@ class TransactionController extends Controller
     }
     
     /**
-     * Parse Indonesian date format (31 Jul 2025, 01 Agu 2025, etc.)
+     * Parse various date formats including Indonesian and international formats
      */
     private function parseIndonesianDate($dateString)
     {
         $dateString = trim($dateString);
         
-        // Indonesian month mapping
+        // Indonesian and English month mapping
         $monthMap = [
+            // Indonesian months
             'jan' => '01', 'januari' => '01',
-            'feb' => '02', 'februari' => '02',
+            'feb' => '02', 'februari' => '02', 
             'mar' => '03', 'maret' => '03',
             'apr' => '04', 'april' => '04',
-            'mei' => '05',
-            'jun' => '06', 'juni' => '06',
-            'jul' => '07', 'juli' => '07',
-            'agu' => '08', 'agus' => '08', 'agustus' => '08',
+            'mei' => '05', 'may' => '05',
+            'jun' => '06', 'juni' => '06', 'june' => '06',
+            'jul' => '07', 'juli' => '07', 'july' => '07',
+            'agu' => '08', 'agus' => '08', 'agustus' => '08', 'aug' => '08', 'august' => '08',
             'sep' => '09', 'sept' => '09', 'september' => '09',
-            'okt' => '10', 'oktober' => '10',
+            'okt' => '10', 'oktober' => '10', 'oct' => '10', 'october' => '10',
             'nov' => '11', 'november' => '11',
-            'des' => '12', 'desember' => '12',
+            'des' => '12', 'desember' => '12', 'dec' => '12', 'december' => '12',
         ];
         
-        // Try to parse Indonesian format (31 Jul 2025)
+        // Pattern 1: DD-MMM-YY (30-Jun-25, 15-Dec-24)
+        if (preg_match('/(\d{1,2})[-\/](\w+)[-\/](\d{2})$/', $dateString, $matches)) {
+            $day = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
+            $monthStr = strtolower($matches[2]);
+            $yearShort = $matches[3];
+            
+            // Convert 2-digit year to 4-digit (assume 2000+)
+            $year = '20' . $yearShort;
+            
+            if (isset($monthMap[$monthStr])) {
+                return $year . '-' . $monthMap[$monthStr] . '-' . $day;
+            }
+        }
+        
+        // Pattern 2: DD-MMM-YYYY (30-Jun-2025, 15-Dec-2024)
+        if (preg_match('/(\d{1,2})[-\/](\w+)[-\/](\d{4})/', $dateString, $matches)) {
+            $day = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
+            $monthStr = strtolower($matches[2]);
+            $year = $matches[3];
+            
+            if (isset($monthMap[$monthStr])) {
+                return $year . '-' . $monthMap[$monthStr] . '-' . $day;
+            }
+        }
+        
+        // Pattern 3: DD MMM YYYY (31 Jul 2025, 01 Agu 2025)
         if (preg_match('/(\d{1,2})\s+(\w+)\s+(\d{4})/', $dateString, $matches)) {
             $day = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
             $monthStr = strtolower($matches[2]);
@@ -307,14 +349,41 @@ class TransactionController extends Controller
             }
         }
         
-        // Try standard formats (YYYY-MM-DD, DD/MM/YYYY, etc.)
+        // Pattern 4: MMM DD, YYYY (Jun 30, 2025)
+        if (preg_match('/(\w+)\s+(\d{1,2}),?\s+(\d{4})/', $dateString, $matches)) {
+            $monthStr = strtolower($matches[1]);
+            $day = str_pad($matches[2], 2, '0', STR_PAD_LEFT);
+            $year = $matches[3];
+            
+            if (isset($monthMap[$monthStr])) {
+                return $year . '-' . $monthMap[$monthStr] . '-' . $day;
+            }
+        }
+        
+        // Pattern 5: Standard numeric formats
         $standardFormats = [
-            'Y-m-d', 'd/m/Y', 'm/d/Y', 'd-m-Y', 'm-d-Y'
+            'Y-m-d',    // 2025-06-30
+            'd/m/Y',    // 30/06/2025
+            'm/d/Y',    // 06/30/2025
+            'd-m-Y',    // 30-06-2025
+            'm-d-Y',    // 06-30-2025
+            'Y/m/d',    // 2025/06/30
+            'd.m.Y',    // 30.06.2025
+            'd/m/y',    // 30/06/25
+            'm/d/y',    // 06/30/25
+            'd-m-y',    // 30-06-25
+            'm-d-y',    // 06-30-25
         ];
         
         foreach ($standardFormats as $format) {
             $parsed = \DateTime::createFromFormat($format, $dateString);
-            if ($parsed !== false) {
+            if ($parsed !== false && $parsed->format($format) === $dateString) {
+                // Handle 2-digit years
+                $year = (int) $parsed->format('Y');
+                if ($year < 100) {
+                    $year = $year < 50 ? 2000 + $year : 1900 + $year;
+                    $parsed->setDate($year, (int) $parsed->format('m'), (int) $parsed->format('d'));
+                }
                 return $parsed->format('Y-m-d');
             }
         }
@@ -350,28 +419,55 @@ class TransactionController extends Controller
     }
     
     /**
-     * Determine transaction type based on category
+     * Determine transaction type based on category with expanded keyword detection
      */
     private function determineTransactionType($category, $subcategory = null)
     {
-        $incomeKeywords = ['pemasukan', 'income', 'gaji', 'salary', 'pendapatan', 'bonus', 'hadiah'];
-        $expenseKeywords = ['pengeluaran', 'expense', 'belanja', 'bayar', 'beli', 'makan', 'transport'];
+        // Income keywords (Indonesian & English)
+        $incomeKeywords = [
+            'pemasukan', 'income', 'pendapatan', 'masuk', 'terima',
+            'gaji', 'salary', 'upah', 'wage',
+            'bonus', 'tunjangan', 'allowance', 'komisi', 'commission',
+            'hadiah', 'gift', 'hibah', 'grant', 'donasi', 'donation',
+            'penjualan', 'sale', 'jual', 'sell', 'untung', 'profit',
+            'bunga', 'interest', 'dividen', 'dividend', 'investasi', 'investment',
+            'freelance', 'konsultan', 'consultant', 'royalti', 'royalty'
+        ];
+        
+        // Expense keywords (Indonesian & English) 
+        $expenseKeywords = [
+            'pengeluaran', 'expense', 'keluar', 'bayar', 'pay', 'beli', 'buy',
+            'belanja', 'shopping', 'beli', 'purchase', 'pembelian',
+            'makan', 'food', 'makanan', 'minuman', 'drink', 'restaurant', 'restoran',
+            'transport', 'transportasi', 'bensin', 'fuel', 'gas', 'ojek', 'taxi', 'grab',
+            'listrik', 'electricity', 'air', 'water', 'internet', 'pulsa', 'credit',
+            'sewa', 'rent', 'kost', 'boarding', 'rumah', 'house', 'apartment',
+            'kesehatan', 'health', 'dokter', 'doctor', 'obat', 'medicine', 'rumah sakit', 'hospital',
+            'pendidikan', 'education', 'sekolah', 'school', 'kuliah', 'university', 'kursus', 'course',
+            'hiburan', 'entertainment', 'movie', 'bioskop', 'game', 'music', 'streaming',
+            'pakaian', 'clothing', 'baju', 'celana', 'sepatu', 'shoes', 'fashion',
+            'pajak', 'tax', 'denda', 'fine', 'administrasi', 'admin', 'bank', 'atm',
+            'maintenance', 'service', 'perbaikan', 'repair', 'cleaning', 'laundry'
+        ];
         
         $searchText = strtolower($category . ' ' . ($subcategory ?? ''));
         
+        // Check for income keywords first (more specific)
         foreach ($incomeKeywords as $keyword) {
             if (strpos($searchText, $keyword) !== false) {
                 return 'income';
             }
         }
         
+        // Check for expense keywords
         foreach ($expenseKeywords as $keyword) {
             if (strpos($searchText, $keyword) !== false) {
                 return 'expense';
             }
         }
         
-        // Default to expense if can't determine
+        // If amount is negative, it's likely an expense
+        // If amount is positive and no clear indication, default to expense for safety
         return 'expense';
     }
     
