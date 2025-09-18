@@ -417,7 +417,6 @@ This project is open-sourced software licensed under the [MIT license](LICENSE).
 ---
 
 <div align="center">
-  <p><strong>🎉 PROJECT 100% COMPLETE! 🎉</strong></p>
   <p><strong>Made with ❤️ using Laravel & Vue.js</strong></p>
   <p>Features include: CRUD Operations, Charts, Dark Mode, i18n, CSV Export, Multi-Currency Support</p>
   <p>If you found this project helpful, please give it a ⭐!</p>
