@@ -1,11 +1,11 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\BudgetController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\TransactionController;
+use Illuminate\Support\Facades\Route;
 
 Route::middleware('api')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index']);
@@ -15,4 +15,7 @@ Route::middleware('api')->group(function () {
 
     Route::get('/settings', [SettingController::class, 'index']);
     Route::put('/settings', [SettingController::class, 'update']);
+
+    Route::apiResource('budgets', BudgetController::class);
+
 });

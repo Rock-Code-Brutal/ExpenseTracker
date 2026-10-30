@@ -3,7 +3,7 @@
   <p><strong>A modern web application for expense tracking with Laravel & Vue 3</strong></p>
   
   <img src="https://img.shields.io/badge/Status-100%25%20Complete-success?style=for-the-badge&logo=checkmarx&logoColor=white" alt="Status">
-  <img src="https://img.shields.io/badge/Laravel-11.x-FF2D20?style=for-the-badge&logo=laravel&logoColor=white" alt="Laravel">
+  <img src="https://img.shields.io/badge/Laravel-13.x-FF2D20?style=for-the-badge&logo=laravel&logoColor=white" alt="Laravel">
   <img src="https://img.shields.io/badge/Vue.js-3.x-4FC08D?style=for-the-badge&logo=vue.js&logoColor=white" alt="Vue.js">
   <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind CSS">
   <img src="https://img.shields.io/badge/Chart.js-FF6384?style=for-the-badge&logo=chart.js&logoColor=white" alt="Chart.js">
@@ -63,7 +63,7 @@
 
 ### **Backend**
 
-- **Framework**: Laravel 11.x
+- **Framework**: Laravel 13.x
 - **Database**: SQLite (development), MySQL/PostgreSQL (production ready)
 - **API**: RESTful API with JSON responses
 - **Authentication**: Laravel Sanctum (ready for implementation)
@@ -90,9 +90,9 @@
 
 ### Prerequisites
 
-- PHP 8.2 or higher
+- PHP 8.3 or higher
 - Composer
-- Node.js 18+ and NPM
+- Node.js 20.19+ and NPM
 - SQLite (default) or MySQL/PostgreSQL
 
 ### Step 1: Clone the Repository
@@ -422,3 +422,7 @@ This project is open-sourced software licensed under the [MIT license](LICENSE).
   <p>If you found this project helpful, please give it a ⭐!</p>
   <p><em>Terima kasih! Thank you!</em> 🙏</p>
 </div>
+
+## Monthly category budgets
+
+Use the Budgets tab to manage monthly expense-category limits in USD or CAD. See [setup, behavior, and QA checklist](docs/budget-qa.md).

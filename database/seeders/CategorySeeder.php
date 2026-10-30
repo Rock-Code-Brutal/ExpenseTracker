@@ -14,20 +14,23 @@ class CategorySeeder extends Seeder
     public function run(): void
     {
         $categories = [
-            //Pemasukan
-            ['name' => 'Gaji', 'type' => 'income', 'color' => '#10B981'],
-            ['name' => 'PK', 'type' => 'income', 'color' => '#059669'],
-            ['name' => 'Pemberian Ortu', 'type' => 'income', 'color' => '#047857'],
-            ['name' => 'Lainnya', 'type' => 'income', 'color' => '#064E3B'],
+            // Income
+            ['name' => 'Salary', 'type' => 'income', 'color' => '#10B981'],
+            ['name' => 'Freelance Income', 'type' => 'income', 'color' => '#059669'],
+            ['name' => 'Gifts', 'type' => 'income', 'color' => '#047857'],
+            ['name' => 'Other Income', 'type' => 'income', 'color' => '#064E3B'],
 
-            //Pengeluaran
-            ['name' => 'Titip ke Mama', 'type' => 'expense', 'color' => '#EF4444'],
-            ['name' => 'Ojol', 'type' => 'expense', 'color' => '#DC2626'],
-            ['name' => 'Makan Minum', 'type' => 'expense', 'color' => '#B91C1C'],
-            ['name' => 'Belanja', 'type' => 'expense', 'color' => '#B91C1C'],
-            ['name' => 'Sewa/Kos', 'type' => 'expense', 'color' => '#7F1D1D'],
-            ['name' => 'Paket Internet', 'type' => 'expense', 'color' => '#F59E0B'],
-            ['name' => 'Lainnya', 'type' => 'expense', 'color' => '#6B7280'],
+            // Expenses
+            ['name' => 'Groceries', 'type' => 'expense', 'color' => '#EF4444'],
+            ['name' => 'Dining Out', 'type' => 'expense', 'color' => '#DC2626'],
+            ['name' => 'Transportation', 'type' => 'expense', 'color' => '#B91C1C'],
+            ['name' => 'Shopping', 'type' => 'expense', 'color' => '#BE123C'],
+            ['name' => 'Rent and Housing', 'type' => 'expense', 'color' => '#7F1D1D'],
+            ['name' => 'Utilities', 'type' => 'expense', 'color' => '#F59E0B'],
+            ['name' => 'Internet and Phone', 'type' => 'expense', 'color' => '#D97706'],
+            ['name' => 'Healthcare', 'type' => 'expense', 'color' => '#7C3AED'],
+            ['name' => 'Entertainment', 'type' => 'expense', 'color' => '#2563EB'],
+            ['name' => 'Other Expenses', 'type' => 'expense', 'color' => '#6B7280'],
         ];
 
         foreach ($categories as $category) {

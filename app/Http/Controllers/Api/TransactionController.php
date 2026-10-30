@@ -53,7 +53,7 @@ class TransactionController extends Controller
         $validated = $request->validate([
             'category_id' => 'required|exists:categories,id',
             'amount' => 'required|numeric|min:0.01',
-            'currency' => 'required|in:IDR,USD',
+            'currency' => 'required|in:USD,CAD',
             'type' => 'required|in:income,expense',
             'description' => 'nullable|string',
             'transaction_date' => 'required|date',
@@ -64,7 +64,7 @@ class TransactionController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Transaksi berhasil ditambahkan',
+            'message' => 'Transaction added successfully',
             'data' => $transaction,
         ],201);
     }
@@ -89,7 +89,7 @@ class TransactionController extends Controller
         $validated = $request->validate([
             'category_id' => 'required|exists:categories,id',
             'amount' => 'required|numeric|min:0.01',
-            'currency' => 'required|in:IDR,USD',
+            'currency' => 'required|in:USD,CAD',
             'type' => 'required|in:income,expense',
             'description' => 'nullable|string',
             'transaction_date' => 'required|date',
@@ -100,7 +100,7 @@ class TransactionController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Transaksi berhasil diubah',
+            'message' => 'Transaction updated successfully',
             'data' => $transaction,
         ]);
     }
@@ -114,7 +114,7 @@ class TransactionController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Transaksi berhasil dihapus',
+            'message' => 'Transaction deleted successfully',
         ]);
     }
 
@@ -125,7 +125,7 @@ class TransactionController extends Controller
     {
         $request->validate([
             'csv_data' => 'required|string',
-            'currency' => 'required|in:IDR,USD',
+            'currency' => 'required|in:USD,CAD',
         ]);
 
         $csvData = $request->csv_data;
@@ -164,14 +164,14 @@ class TransactionController extends Controller
                 $parsedData = $this->parseRowData($row, $columnMapping, $header);
                 
                 // Parse Indonesian date format
-                $date = $this->parseIndonesianDate($parsedData['date']);
+                $date = $this->parseImportDate($parsedData['date']);
                 if (!$date) {
                     $errors[] = "Row {$i}: Invalid date format '{$parsedData['date']}'";
                     continue;
                 }
                 
-                // Parse Indonesian currency format
-                $amount = $this->parseIndonesianCurrency($parsedData['amount']);
+                // Parse US/Canadian currency format
+                $amount = $this->parseImportAmount($parsedData['amount'], $currency);
                 if ($amount === false) {
                     $errors[] = "Row {$i}: Invalid amount format '{$parsedData['amount']}'";
                     continue;
@@ -292,7 +292,7 @@ class TransactionController extends Controller
     /**
      * Parse various date formats including Indonesian and international formats
      */
-    private function parseIndonesianDate($dateString)
+    private function parseImportDate($dateString)
     {
         $dateString = trim($dateString);
         
@@ -363,16 +363,16 @@ class TransactionController extends Controller
         // Pattern 5: Standard numeric formats
         $standardFormats = [
             'Y-m-d',    // 2025-06-30
-            'd/m/Y',    // 30/06/2025
-            'm/d/Y',    // 06/30/2025
-            'd-m-Y',    // 30-06-2025
-            'm-d-Y',    // 06-30-2025
+            'm/d/Y',    // US dates take precedence
+            'd/m/Y',    // Legacy day-first dates
+            'm-d-Y',
+            'd-m-Y',
             'Y/m/d',    // 2025/06/30
             'd.m.Y',    // 30.06.2025
-            'd/m/y',    // 30/06/25
-            'm/d/y',    // 06/30/25
-            'd-m-y',    // 30-06-25
-            'm-d-y',    // 06-30-25
+            'm/d/y',
+            'd/m/y',
+            'm-d-y',
+            'd-m-y',
         ];
         
         foreach ($standardFormats as $format) {
@@ -392,30 +392,16 @@ class TransactionController extends Controller
     }
     
     /**
-     * Parse Indonesian currency format (Rp 2.500.000 -> 2500000)
+     * Parse US/Canadian currency amounts
      */
-    private function parseIndonesianCurrency($amountString)
+    private function parseImportAmount($amountString, $currency = 'USD')
     {
-        $amountString = trim($amountString);
-        
-        // Remove currency symbols and spaces
-        $cleaned = preg_replace('/[Rp\s\.]/', '', $amountString);
-        $cleaned = str_replace(',', '.', $cleaned); // Handle decimal comma
-        
-        // Check if it's a valid number
-        if (is_numeric($cleaned)) {
-            return (float) $cleaned;
+        $value = trim($amountString);
+        $value = preg_replace('/^(?:USD|CAD|US\$|CA\$|\$)\s*/i', '', $value);
+        if (!preg_match('/^(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d{1,2})?$/', $value)) {
+            return false;
         }
-        
-        // Try to extract number from string
-        if (preg_match('/(\d[\d\.,]*)/', $amountString, $matches)) {
-            $numberStr = str_replace(['.', ','], ['', '.'], $matches[1]);
-            if (is_numeric($numberStr)) {
-                return (float) $numberStr;
-            }
-        }
-        
-        return false;
+        return (float) str_replace(',', '', $value);
     }
     
     /**

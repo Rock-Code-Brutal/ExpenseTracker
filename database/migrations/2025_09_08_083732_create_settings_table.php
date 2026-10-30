@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('settings', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('user_id')->nullable();
-            $table->enum('default_currency', ['IDR', 'USD'])->default('IDR');
+            $table->enum('default_currency', ['USD', 'CAD'])->default('USD');
             $table->timestamps();
 
             $table->index('user_id');

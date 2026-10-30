@@ -22,7 +22,7 @@
                         
                         <select v-model="currentCurrency" @change="changeCurrency"
                                 class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
-                            <option value="IDR">IDR (Rp)</option>
+                            <option value="CAD">CAD (CA$)</option>
                             <option value="USD">USD ($)</option>
                         </select>
                     </div>
@@ -34,7 +34,7 @@
         <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
             <!--Tab Navigasi-->
             <div class="border-b border-gray-200 dark:border-gray-700 mb-6">
-                <nav class="-mb-px flex space-x-8">
+                <nav class="-mb-px flex gap-4 sm:gap-8 overflow-x-auto">
                     <button @click="activeTab = 'dashboard'"
                             :class="activeTab === 'dashboard' ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'"
                             class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors">
@@ -50,10 +50,14 @@
                             class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors">
                         {{ t('categories') }}
                     </button>
+                    <button @click="activeTab = 'budgets'"
+                        :class="activeTab === 'budgets' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 dark:text-gray-400'"
+                        class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">Budgets</button>
                 </nav>
             </div>
 
             <!--Konten Tab-->
+            <Budgets v-if="activeTab === 'budgets'" :currency="currentCurrency" />
             <div v-if="activeTab === 'dashboard'">
                 <Dashboard :currency="currentCurrency"/>
             </div>
@@ -74,11 +78,12 @@
 import {onMounted, ref} from "vue";
 import Dashboard from "./components/Dashboard.vue";
 import Transactions from "./components/Transaction.vue";
+import Budgets from "./components/Budgets.vue";
 import Categories from "./components/Categories.vue";
-import { t, setLanguage } from './utils/i18n.js';
+import { t } from './utils/i18n.js';
 
 const activeTab = ref('dashboard')
-const currentCurrency = ref('IDR')
+const currentCurrency = ref('USD')
 const isDarkMode = ref(false)
 
 const changeCurrency = async () => {
@@ -92,10 +97,8 @@ const changeCurrency = async () => {
                 default_currency: currentCurrency.value,
             })
         })
-        // Update language based on currency
-        setLanguage(currentCurrency.value)
     } catch (error) {
-        console.error("Gagal untuk memperbarui Kurensi", error);
+        console.error("Unable to update currency", error);
     }
 }
 
@@ -122,11 +125,9 @@ const loadSettings = async () => {
         const data = await response.json()
         if (data.success) {
             currentCurrency.value = data.data.default_currency
-            // Set language based on loaded currency
-            setLanguage(currentCurrency.value)
         }
     } catch (error) {
-        console.error('Gagal untuk memperbarui Setting:', error)
+        console.error('Unable to update settings:', error)
     }
 }
 

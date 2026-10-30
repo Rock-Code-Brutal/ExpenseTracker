@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('category_id')->constrained()->onDelete('cascade');
             $table->decimal('amount', 15, 2);
-            $table->enum('currency', ['IDR', 'USD'])->default('IDR');
+            $table->enum('currency', ['USD', 'CAD'])->default('USD');
             $table->enum('type', ['income', 'expense']);
             $table->text('description')->nullable();
             $table->date('transaction_date');

@@ -12,7 +12,7 @@ class DashboardController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $currency = $request->get('currency', 'IDR');
+        $currency = $request->get('currency', 'USD');
         $currentMonth = Carbon::now()->format('Y-m');
 
         //Total Balance

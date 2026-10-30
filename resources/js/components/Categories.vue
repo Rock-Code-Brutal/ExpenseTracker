@@ -176,7 +176,7 @@ const loadCategories = async () => {
             categories.value = data.data
         }
     } catch (error) {
-        console.error('Gagal Memuat Kategori: ', error)
+        console.error('Unable to load categories: ', error)
     } finally {
         loading.value = false
     }
@@ -229,11 +229,11 @@ const deleteCategory = async (id, name) => {
         if (data.success) {
             await loadCategories() // Refresh list
         } else {
-            alert(data.message || 'Gagal menghapus kategori')
+            alert(data.message || 'Unable to delete category')
         }
     } catch (error) {
         console.error('Failed to delete category:', error)
-        alert('Gagal menghapus kategori')
+        alert('Unable to delete category')
     }
 }
 

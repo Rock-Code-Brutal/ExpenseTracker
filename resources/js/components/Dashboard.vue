@@ -91,6 +91,7 @@
 </template>
 
 <script setup>
+import { formatDate, todayInNewYork } from '../utils/localization.js'
 import {computed, onMounted, ref, watch} from 'vue'
 import ChartComponent from './ChartComponent.vue'
 import { t } from '../utils/i18n.js'
@@ -98,7 +99,7 @@ import { t } from '../utils/i18n.js'
 const props = defineProps({
     currency: {
         type: String,
-        default: 'IDR'
+        default: 'USD'
     }
 })
 
@@ -114,28 +115,9 @@ const dashboardData = ref({
 })
 
 //Metode
-const formatCurrency = (amount) => {
-    if (props.currency === 'IDR') {
-        return new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            minimumFractionDigits: 0
-        }).format(amount)
-    } else {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'USD'
-        }).format(amount)
-    }
-}
+const formatCurrency = (amount) => new Intl.NumberFormat('en-US', { style: 'currency', currency: props.currency }).format(amount)
 
-const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('id-ID', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-    })
-}
+
 
 // Computed untuk chart data
 const monthlyChartData = computed(() => {
@@ -195,7 +177,7 @@ const loadDashboard = async () => {
             console.error('Dashboard API failed:', data)
         }
     } catch (error) {
-        console.error('Gagal untuk memuat Dashboard:', error)
+        console.error('Unable to load dashboard:', error)
     } finally {
         loading.value = false
     }

@@ -15,7 +15,7 @@ class SettingSeeder extends Seeder
     {
         Setting::create([
             'user_id' => null,
-            'default_currency' => 'IDR',
+            'default_currency' => 'USD',
         ]);
     }
 }

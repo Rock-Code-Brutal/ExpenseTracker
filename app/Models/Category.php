@@ -12,12 +12,17 @@ class Category extends Model
     protected $fillable = [
         'name',
         'type',
-        'color'
+        'color',
     ];
 
     public function transactions()
     {
         return $this->hasMany(Transaction::class);
+    }
+
+    public function budgets()
+    {
+        return $this->hasMany(Budget::class);
     }
 
     public function scopeIncome($query)

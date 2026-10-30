@@ -1,4 +1,5 @@
 <script setup>
+import { formatDate, todayInNewYork } from '../utils/localization.js'
 import {computed, onMounted, ref, watch} from "vue";
 import {reactive} from "vue";
 import { t } from '../utils/i18n.js';
@@ -6,7 +7,7 @@ import { t } from '../utils/i18n.js';
 const props = defineProps({
     currency: {
         type: String,
-        default: 'IDR'
+        default: 'USD'
     }
 })
 
@@ -55,7 +56,7 @@ const form = reactive({
     type: '',
     category_id: '',
     amount: '',
-    transaction_date: new Date().toISOString().split('T')[0],
+    transaction_date: todayInNewYork(),
     description: '',
     currency: props.currency
 })
@@ -80,16 +81,9 @@ const loadCategories = async () => {
 }
 
 //Format Helper
-const formatCurrency = (amount) => {
-    return new Intl.NumberFormat(props.currency === 'IDR' ? 'id-ID' : 'en-US', {
-        style: 'currency',
-        currency: props.currency,
-    }).format(amount)
-}
+const formatCurrency = (amount) => new Intl.NumberFormat('en-US', { style: 'currency', currency: props.currency }).format(amount)
 
-const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('id-ID', {day: '2-digit', month: '2-digit', year: 'numeric'})
-}
+
 
 //Muat Transaksi
 const loadTransactions = async (page = 1, append = false) => {
@@ -303,7 +297,7 @@ const exportToCSV = () => {
     const link = document.createElement('a')
     const url = URL.createObjectURL(blob)
     link.setAttribute('href', url)
-    link.setAttribute('download', `transactions_${new Date().toISOString().split('T')[0]}.csv`)
+    link.setAttribute('download', `transactions_${todayInNewYork()}.csv`)
     link.style.visibility = 'hidden'
     document.body.appendChild(link)
     link.click()
@@ -408,7 +402,7 @@ const closeForm = () => {
         type: '',
         category_id: '',
         amount: '',
-        transaction_date: new Date().toISOString().split('T')[0],
+        transaction_date: todayInNewYork(),
         description: '',
         currency: props.currency
     })
@@ -556,17 +550,17 @@ onMounted(() => {
                         <div>
                             <p class="font-medium text-blue-900 dark:text-blue-200 mb-1">{{ t('supported_columns') }}:</p>
                             <ul class="text-blue-800 dark:text-blue-300 space-y-1">
-                                <li>• {{ t('date_columns') }}: Tanggal, Date, Tgl</li>
-                                <li>• {{ t('category_columns') }}: Kategori, Category, Sub Kategori</li>
-                                <li>• {{ t('amount_columns') }}: Nominal, Amount, Jumlah</li>
-                                <li>• {{ t('description_columns') }}: Keterangan, Description</li>
+                                <li>• {{ t('date_columns') }}: Date</li>
+                                <li>• {{ t('category_columns') }}: Category, Subcategory</li>
+                                <li>• {{ t('amount_columns') }}: Amount</li>
+                                <li>• {{ t('description_columns') }}: Description</li>
                             </ul>
                         </div>
                         <div>
                             <p class="font-medium text-blue-900 dark:text-blue-200 mb-1">{{ t('supported_formats') }}:</p>
                             <ul class="text-blue-800 dark:text-blue-300 space-y-1">
-                                <li>• {{ t('date_formats') }}: 31 Jul 2025, 01 Agu 2025</li>
-                                <li>• {{ t('currency_formats') }}: Rp 2.500.000, 2500000</li>
+                                <li>• {{ t('date_formats') }}: MM/DD/YYYY or YYYY-MM-DD</li>
+                                <li>• {{ t('currency_formats') }}: $1,234.56 or 1234.56</li>
                                 <li>• {{ t('auto_type_detection') }}</li>
                                 <li>• {{ t('flexible_column_order') }}</li>
                             </ul>
@@ -574,7 +568,7 @@ onMounted(() => {
                     </div>
                     <div class="mt-3 p-2 bg-green-100 dark:bg-green-900/20 rounded">
                         <p class="text-xs text-green-800 dark:text-green-200">
-                            <strong>{{ t('example_format') }}:</strong> Tanggal, Kategori, Sub Kategori, Nominal, Keterangan
+                            <strong>{{ t('example_format') }}:</strong> Date, Category, Subcategory, Amount, Description
                         </p>
                     </div>
                 </div>

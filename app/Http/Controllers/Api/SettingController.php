@@ -17,7 +17,7 @@ class SettingController extends Controller
         $settings = Setting::whereNull('user_id')->first();
 
         if (!$settings) {
-            $settings = Setting::create(['default_currency' => 'IDR']);
+            $settings = Setting::create(['default_currency' => 'USD']);
         }
 
         return response()->json([
@@ -48,7 +48,7 @@ class SettingController extends Controller
     public function update(Request $request)
     {
         $validated = $request->validate([
-            'default_currency' => 'required|in:IDR,USD',
+            'default_currency' => 'required|in:CAD,USD',
         ]);
 
         $setting = Setting::whereNull('user_id')->first();
@@ -61,7 +61,7 @@ class SettingController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Setting berhasil diupdate',
+            'message' => 'Settings updated successfully',
             'data' => $setting,
         ]);
     }
